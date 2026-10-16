@@ -22,12 +22,35 @@
 </head>
 <body>
 
+<div id="lock" style="position:fixed;inset:0;background:#fff;color:#000;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:sans-serif">Checking your location...</div>
+
+<script>
+const SCHOOL = {lat: 5.661549, lng: -0.165067};
+const RADIUS = 300;
+
+function dist(a,b,c,d){
+  const R=6371000, t=x=>x*Math.PI/180;
+  const h=Math.sin(t(c-a)/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(t(d-b)/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const lock=document.getElementById('lock');
+navigator.geolocation.getCurrentPosition(
+  p=>{
+    const d=dist(p.coords.latitude,p.coords.longitude,SCHOOL.lat,SCHOOL.lng);
+    if(d<=RADIUS) lock.remove();
+    else lock.textContent="Access denied: you must be on school premises.";
+  },
+  ()=>{lock.textContent="Please allow location access to use this app.";},
+  {enableHighAccuracy:true,timeout:15000}
+);
+</script>
+
 <div class="container">
   <h1>Student Attendance Tracker</h1>
-  
+
   <form id="attendanceForm">
     <input type="text" id="studentName" placeholder="Student Name" required>
-    <input type="date" id="attendanceDate" required>
+    <input type="text" id="indexNumber" placeholder="Index Number" required>
     <select id="attendanceStatus">
       <option value="Present">Present</option>
       <option value="Absent">Absent</option>
@@ -40,13 +63,12 @@
   <table>
     <thead>
       <tr>
-        <th>Date</th>
+        <th>Index Number</th>
         <th>Student Name</th>
         <th>Status</th>
       </tr>
     </thead>
     <tbody id="recordsTable">
-      <!-- Attendance entries will appear here -->
     </tbody>
   </table>
 </div>
@@ -55,29 +77,34 @@
   const form = document.getElementById('attendanceForm');
   const tableBody = document.getElementById('recordsTable');
 
-  // Load existing records from LocalStorage
   document.addEventListener('DOMContentLoaded', loadRecords);
 
   form.addEventListener('submit', function(e) {
     e.preventDefault();
 
-    const name = document.getElementById('studentName').value;
-    const date = document.getElementById('attendanceDate').value;
+    const name = document.getElementById('studentName').value.trim();
+    const indexNumber = document.getElementById('indexNumber').value.trim();
     const status = document.getElementById('attendanceStatus').value;
 
-    const record = { name, date, status };
+    const record = { name, indexNumber, status };
     saveRecord(record);
     addRecordToTable(record);
 
     form.reset();
   });
 
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
   function addRecordToTable(record) {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${record.date}</td>
-      <td>${record.name}</td>
-      <td class="status-${record.status}">${record.status}</td>
+      <td>${esc(record.indexNumber)}</td>
+      <td>${esc(record.name)}</td>
+      <td class="status-${esc(record.status)}">${esc(record.status)}</td>
     `;
     tableBody.appendChild(row);
   }
