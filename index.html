@@ -18,6 +18,8 @@
     .status-Present { color: green; font-weight: bold; }
     .status-Absent { color: red; font-weight: bold; }
     .status-Late { color: orange; font-weight: bold; }
+    .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    #summary { margin: 10px 0; font-weight: bold; color: #333; }
   </style>
 </head>
 <body>
@@ -60,6 +62,19 @@ navigator.geolocation.getCurrentPosition(
   </form>
 
   <h2>Attendance Records</h2>
+
+  <div class="filter-row">
+    <label for="filterStatus">Show:</label>
+    <select id="filterStatus">
+      <option value="All">All</option>
+      <option value="Present">Present only</option>
+      <option value="Absent">Absent only</option>
+      <option value="Late">Late only</option>
+    </select>
+  </div>
+
+  <div id="summary"></div>
+
   <table>
     <thead>
       <tr>
@@ -68,30 +83,19 @@ navigator.geolocation.getCurrentPosition(
         <th>Status</th>
       </tr>
     </thead>
-    <tbody id="recordsTable">
-    </tbody>
+    <tbody id="recordsTable"></tbody>
   </table>
 </div>
 
 <script>
   const form = document.getElementById('attendanceForm');
   const tableBody = document.getElementById('recordsTable');
+  const filterStatus = document.getElementById('filterStatus');
+  const summary = document.getElementById('summary');
 
-  document.addEventListener('DOMContentLoaded', loadRecords);
-
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('studentName').value.trim();
-    const indexNumber = document.getElementById('indexNumber').value.trim();
-    const status = document.getElementById('attendanceStatus').value;
-
-    const record = { name, indexNumber, status };
-    saveRecord(record);
-    addRecordToTable(record);
-
-    form.reset();
-  });
+  function getRecords() {
+    return JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+  }
 
   function esc(s) {
     const d = document.createElement('div');
@@ -109,16 +113,33 @@ navigator.geolocation.getCurrentPosition(
     tableBody.appendChild(row);
   }
 
-  function saveRecord(record) {
-    let records = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
-    records.push(record);
-    localStorage.setItem('attendanceRecords', JSON.stringify(records));
+  function render() {
+    const records = getRecords();
+    const f = filterStatus.value;
+    tableBody.innerHTML = '';
+    records.filter(r => f === 'All' || r.status === f).forEach(addRecordToTable);
+
+    const count = s => records.filter(r => r.status === s).length;
+    summary.textContent =
+      `Present: ${count('Present')} | Late: ${count('Late')} | Absent: ${count('Absent')} | Total: ${records.length}`;
   }
 
-  function loadRecords() {
-    let records = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
-    records.forEach(addRecordToTable);
-  }
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const record = {
+      name: document.getElementById('studentName').value.trim(),
+      indexNumber: document.getElementById('indexNumber').value.trim(),
+      status: document.getElementById('attendanceStatus').value
+    };
+    const records = getRecords();
+    records.push(record);
+    localStorage.setItem('attendanceRecords', JSON.stringify(records));
+    form.reset();
+    render();
+  });
+
+  filterStatus.addEventListener('change', render);
+  document.addEventListener('DOMContentLoaded', render);
 </script>
 
 </body>
