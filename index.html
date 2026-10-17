@@ -3,23 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Attendance Tracker</title>
+  <title>Student Attendance</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
-    h1 { color: #333; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    form { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    input, select, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
-    button { background-color: #28a745; color: white; border: none; cursor: pointer; }
-    button:hover { background-color: #218838; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background-color: #007bff; color: white; }
-    .status-Present { color: green; font-weight: bold; }
-    .status-Absent { color: red; font-weight: bold; }
-    .status-Late { color: orange; font-weight: bold; }
-    .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    #summary { margin: 10px 0; font-weight: bold; color: #333; }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f7f6; }
+    .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 { color: #333; font-size: 22px; }
+    .card { background: #eef5ff; border-left: 4px solid #007bff; padding: 12px; border-radius: 4px; margin-bottom: 16px; line-height: 1.5; }
+    .card.closed { background: #fff3e0; border-color: #ff9800; }
+    input, button { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { background: #28a745; color: #fff; border: none; cursor: pointer; }
+    button:disabled { background: #999; }
+    #msg { font-weight: bold; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -28,7 +22,7 @@
 
 <script>
 const SCHOOL = {lat: 5.661549, lng: -0.165067};
-const RADIUS = 300;
+const RADIUS = 100000000; // TEST MODE: change back to 300 after testing
 
 function dist(a,b,c,d){
   const R=6371000, t=x=>x*Math.PI/180;
@@ -48,99 +42,109 @@ navigator.geolocation.getCurrentPosition(
 </script>
 
 <div class="container">
-  <h1>Student Attendance Tracker</h1>
-
+  <h1>Student Attendance</h1>
+  <div id="sessionCard" class="card"></div>
   <form id="attendanceForm">
-    <input type="text" id="studentName" placeholder="Student Name" required>
+    <input type="text" id="studentName" placeholder="Full Name" required>
     <input type="text" id="indexNumber" placeholder="Index Number" required>
-    <select id="attendanceStatus">
-      <option value="Present">Present</option>
-      <option value="Absent">Absent</option>
-      <option value="Late">Late</option>
-    </select>
-    <button type="submit">Mark Attendance</button>
+    <button type="submit" id="submitBtn">Mark Attendance</button>
   </form>
-
-  <h2>Attendance Records</h2>
-
-  <div class="filter-row">
-    <label for="filterStatus">Show:</label>
-    <select id="filterStatus">
-      <option value="All">All</option>
-      <option value="Present">Present only</option>
-      <option value="Absent">Absent only</option>
-      <option value="Late">Late only</option>
-    </select>
-  </div>
-
-  <div id="summary"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Index Number</th>
-        <th>Student Name</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="recordsTable"></tbody>
-  </table>
+  <div id="msg"></div>
 </div>
 
 <script>
+  const URL_SHEET = "https://script.google.com/macros/s/AKfycbzBO2Y6-ih-6aw52vHqkDtWrlJpAXpx5hMx3yiKmP8r2dcFLVph-GSflOZ892E16b2LPw/exec";
+  const OPEN_BEFORE = 15;  // minutes before a lecture starts that marking opens
+  const LATE_AFTER = 15;   // minutes after the start that counts as Late
+
+  const TIMETABLE = [
+    {day:'Sat', start:'00:00', end:'23:59', session:1, course:'TEST - delete this row', lecturer:'Test Lecturer', venue:'Home'},
+    {day:'Mon', start:'07:30', end:'10:30', session:1, course:'BGEC113 - Introduction to Environmental Management', lecturer:'Dr. Cynthia A. Borchwey', venue:'LBC301'},
+    {day:'Mon', start:'14:15', end:'17:15', session:2, course:'BGEC103 - Business Communication', lecturer:'Salomey Horsu', venue:'LBC406B'},
+    {day:'Tue', start:'07:30', end:'10:30', session:1, course:'BGEC101 - Communication Skills', lecturer:'Dr. Nii Okai Tieko', venue:'LBC201'},
+    {day:'Tue', start:'11:00', end:'14:00', session:2, course:'BGEC109 - French Language', lecturer:'Maame Ama Boadiwaa', venue:'LBC404'},
+    {day:'Fri', start:'07:30', end:'10:30', session:1, course:'BGEC107 - Introduction to Information Technology', lecturer:'Emmanuel K. Akpakli', venue:'LBC202B'},
+    {day:'Fri', start:'11:00', end:'14:00', session:2, course:'BCPC105 - Introduction to Business Mathematics', lecturer:'F. Adu Gardner', venue:'LBC105'}
+  ];
+
   const form = document.getElementById('attendanceForm');
-  const tableBody = document.getElementById('recordsTable');
-  const filterStatus = document.getElementById('filterStatus');
-  const summary = document.getElementById('summary');
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submitBtn');
+  const card = document.getElementById('sessionCard');
 
-  function getRecords() {
-    return JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+  function toMin(t){ const p = t.split(':'); return +p[0]*60 + +p[1]; }
+
+  function nowAccra(){
+    const parts = new Intl.DateTimeFormat('en-GB', {timeZone:'Africa/Accra', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
+    const g = t => parts.find(x => x.type === t).value;
+    const hh = g('hour').padStart(2,'0'), mm = g('minute').padStart(2,'0');
+    return {
+      day: g('weekday'),
+      min: (+g('hour') % 24) * 60 + (+g('minute')),
+      clock: hh + ':' + mm,
+      date: new Date().toLocaleDateString('en-CA', {timeZone:'Africa/Accra'})
+    };
   }
 
-  function esc(s) {
-    const d = document.createElement('div');
-    d.textContent = s || '';
-    return d.innerHTML;
+  function currentSession(){
+    const n = nowAccra();
+    return TIMETABLE.find(s => s.day === n.day && n.min >= toMin(s.start) - OPEN_BEFORE && n.min <= toMin(s.end)) || null;
   }
 
-  function addRecordToTable(record) {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${esc(record.indexNumber)}</td>
-      <td>${esc(record.name)}</td>
-      <td class="status-${esc(record.status)}">${esc(record.status)}</td>
-    `;
-    tableBody.appendChild(row);
+  function renderSession(){
+    const s = currentSession();
+    card.textContent = '';
+    if (s) {
+      card.className = 'card';
+      const lines = ['Session ' + s.session + ' is open', s.course, 'Lecturer: ' + s.lecturer, 'Venue: ' + s.venue, 'Time: ' + s.start + ' - ' + s.end];
+      lines.forEach(function(t, i){
+        const el = document.createElement(i === 0 ? 'strong' : 'div');
+        el.textContent = t;
+        card.appendChild(el);
+      });
+      btn.disabled = false;
+    } else {
+      card.className = 'card closed';
+      card.textContent = 'No lecture session is open right now. Attendance can only be marked during lecture times.';
+      btn.disabled = true;
+    }
   }
-
-  function render() {
-    const records = getRecords();
-    const f = filterStatus.value;
-    tableBody.innerHTML = '';
-    records.filter(r => f === 'All' || r.status === f).forEach(addRecordToTable);
-
-    const count = s => records.filter(r => r.status === s).length;
-    summary.textContent =
-      `Present: ${count('Present')} | Late: ${count('Late')} | Absent: ${count('Absent')} | Total: ${records.length}`;
-  }
+  renderSession();
+  setInterval(renderSession, 30000);
 
   form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const record = {
-      name: document.getElementById('studentName').value.trim(),
-      indexNumber: document.getElementById('indexNumber').value.trim(),
-      status: document.getElementById('attendanceStatus').value
-    };
-    const records = getRecords();
-    records.push(record);
-    localStorage.setItem('attendanceRecords', JSON.stringify(records));
-    form.reset();
-    render();
-  });
+    const s = currentSession();
+    if (!s) { renderSession(); return; }
 
-  filterStatus.addEventListener('change', render);
-  document.addEventListener('DOMContentLoaded', render);
-</script>
+    const n = nowAccra();
+    const name = document.getElementById('studentName').value.trim();
+    const indexNumber = document.getElementById('indexNumber').value.trim();
+    const key = 'marked:' + n.date + ':' + s.session + ':' + indexNumber.toLowerCase();
 
-</body>
-</html>
+    try {
+      if (localStorage.getItem(key)) {
+        msg.style.color = 'orange';
+        msg.textContent = 'This index number has already been marked for this session.';
+        return;
+      }
+    } catch (err) {}
+
+    const status = (n.min - toMin(s.start) > LATE_AFTER) ? 'Late' : 'Present';
+
+    btn.disabled = true;
+    msg.style.color = '#333';
+    msg.textContent = 'Submitting...';
+
+    fetch(URL_SHEET, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({name: name, indexNumber: indexNumber, course: s.course, lecturer: s.lecturer, session: s.session, status: status})
+    }).then(function() {
+      try { localStorage.setItem(key, '1'); } catch (err) {}
+      msg.style.color = 'green';
+      msg.textContent = 'Marked ' + status + ' at ' + n.clock + '. Thank you, ' + name + '!';
+      form.reset();
+      renderSession();
+    }).catch(function() {
