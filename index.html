@@ -22,7 +22,7 @@
 
 <script>
 const SCHOOL = {lat: 5.661549, lng: -0.165067};
-const RADIUS = 100000000; // TEST MODE: change back to 300 after testing
+const RADIUS = 100000000; // Set back to 300 to restrict access to campus radius
 
 function dist(a,b,c,d){
   const R=6371000, t=x=>x*Math.PI/180;
@@ -58,11 +58,12 @@ navigator.geolocation.getCurrentPosition(
   const LATE_AFTER = 15;
 
   const TIMETABLE = [
-    {day:'Sat', start:'00:00', end:'23:59', session:1, course:'TEST - delete this row', lecturer:'Test Lecturer', venue:'Home'},
     {day:'Mon', start:'07:30', end:'10:30', session:1, course:'BGEC113 - Introduction to Environmental Management', lecturer:'Dr. Cynthia A. Borchwey', venue:'LBC301'},
     {day:'Mon', start:'14:15', end:'17:15', session:2, course:'BGEC103 - Business Communication', lecturer:'Salomey Horsu', venue:'LBC406B'},
     {day:'Tue', start:'07:30', end:'10:30', session:1, course:'BGEC101 - Communication Skills', lecturer:'Dr. Nii Okai Tieko', venue:'LBC201'},
     {day:'Tue', start:'11:00', end:'14:00', session:2, course:'BGEC109 - French Language', lecturer:'Maame Ama Boadiwaa', venue:'LBC404'},
+    {day:'Wed', start:'07:30', end:'10:30', session:1, course:'BCAD103 - Fundamentals of Ethics', lecturer:'TBA', venue:'Online'},
+    {day:'Wed', start:'11:00', end:'14:00', session:2, course:'BCAD105 - Introduction to Entrepreneurship', lecturer:'TBA', venue:'Online'},
     {day:'Fri', start:'07:30', end:'10:30', session:1, course:'BGEC107 - Introduction to Information Technology', lecturer:'Emmanuel K. Akpakli', venue:'LBC202B'},
     {day:'Fri', start:'11:00', end:'14:00', session:2, course:'BCPC105 - Introduction to Business Mathematics', lecturer:'F. Adu Gardner', venue:'LBC105'}
   ];
