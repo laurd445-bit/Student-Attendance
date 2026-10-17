@@ -54,8 +54,8 @@ navigator.geolocation.getCurrentPosition(
 
 <script>
   const URL_SHEET = "https://script.google.com/macros/s/AKfycbzBO2Y6-ih-6aw52vHqkDtWrlJpAXpx5hMx3yiKmP8r2dcFLVph-GSflOZ892E16b2LPw/exec";
-  const OPEN_BEFORE = 15;  // minutes before a lecture starts that marking opens
-  const LATE_AFTER = 15;   // minutes after the start that counts as Late
+  const OPEN_BEFORE = 15;
+  const LATE_AFTER = 15;
 
   const TIMETABLE = [
     {day:'Sat', start:'00:00', end:'23:59', session:1, course:'TEST - delete this row', lecturer:'Test Lecturer', venue:'Home'},
@@ -148,3 +148,12 @@ navigator.geolocation.getCurrentPosition(
       form.reset();
       renderSession();
     }).catch(function() {
+      msg.style.color = 'red';
+      msg.textContent = 'Could not submit. Check your internet and try again.';
+      btn.disabled = false;
+    });
+  });
+</script>
+
+</body>
+</html>
