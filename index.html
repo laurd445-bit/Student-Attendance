@@ -21,8 +21,9 @@
 <div id="lock" style="position:fixed;inset:0;background:#fff;color:#000;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:sans-serif">Checking your location...</div>
 
 <script>
-const SCHOOL = {lat: 5.661549, lng: -0.165067};
-const RADIUS = 100000000; // Set back to 300 to restrict access to campus radius
+// Campus Center Coordinates
+const SCHOOL = {lat: 5.660536, lng: -0.165861};
+const RADIUS = 500; // 500 meters covers the full campus area
 
 function dist(a,b,c,d){
   const R=6371000, t=x=>x*Math.PI/180;
@@ -34,9 +35,9 @@ navigator.geolocation.getCurrentPosition(
   p=>{
     const d=dist(p.coords.latitude,p.coords.longitude,SCHOOL.lat,SCHOOL.lng);
     if(d<=RADIUS) lock.remove();
-    else lock.textContent="Access denied: you must be on school premises.";
+    else lock.textContent="Access denied: You must be on school premises to mark attendance.";
   },
-  ()=>{lock.textContent="Please allow location access to use this app.";},
+  ()=>{lock.textContent="Please enable location access on your phone to mark attendance.";},
   {enableHighAccuracy:true,timeout:15000}
 );
 </script>
