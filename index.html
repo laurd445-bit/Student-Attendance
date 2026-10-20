@@ -23,7 +23,7 @@
 <script>
 // Campus Center Coordinates
 const SCHOOL = {lat: 5.660536, lng: -0.165861};
-const RADIUS = 500; // 500 meters covers the full campus area
+const RADIUS = 500; // 500 meters radius to cover full campus
 
 function dist(a,b,c,d){
   const R=6371000, t=x=>x*Math.PI/180;
@@ -132,7 +132,8 @@ navigator.geolocation.getCurrentPosition(
       }
     } catch (err) {}
 
-    const status = (n.min - toMin(s.start) > LATE_AFTER) ? 'Late' : 'Present';
+    // Status sent to Google Sheet (Present if within 15 min, Late if after)
+    const sheetStatus = (n.min - toMin(s.start) > LATE_AFTER) ? 'Late' : 'Present';
 
     btn.disabled = true;
     msg.style.color = '#333';
@@ -142,11 +143,19 @@ navigator.geolocation.getCurrentPosition(
       method: 'POST',
       mode: 'no-cors',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({name: name, indexNumber: indexNumber, course: s.course, lecturer: s.lecturer, session: s.session, status: status})
+      body: JSON.stringify({
+        name: name,
+        indexNumber: indexNumber,
+        course: s.course,
+        lecturer: s.lecturer,
+        session: s.session,
+        status: sheetStatus
+      })
     }).then(function() {
       try { localStorage.setItem(key, '1'); } catch (err) {}
       msg.style.color = 'green';
-      msg.textContent = 'Marked ' + status + ' at ' + n.clock + '. Thank you, ' + name + '!';
+      // Always displays Present to the student
+      msg.textContent = 'Marked Present at ' + n.clock + '. Thank you, ' + name + '!';
       form.reset();
       renderSession();
     }).catch(function() {
